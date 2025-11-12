@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class Node : MonoBehaviour
+public partial class Node : MonoBehaviour
 {
     public List<Node> connections = new List<Node>();
 

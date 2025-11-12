@@ -463,7 +463,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   playerPrefab: {fileID: 3149695517826389397, guid: dc964801bddaced40ac41a1f8af5eec0, type: 3}
   meshGenerator: {fileID: 2144392290}
-  moveSpeed: 1
+  moveSpeed: 2
   hopHeight: 0.3
 --- !u!4 &1273077896
 Transform:
