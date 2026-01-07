@@ -15,8 +15,8 @@ public class Pathfinding
             MeshNode currentNode = openSet[0];
             for (int i = 1; i < openSet.Count; i++)
             {
-                if (openSet[i].fCost < currentNode.fCost ||
-                    openSet[i].fCost == currentNode.fCost && openSet[i].hCost < currentNode.hCost)
+                if (openSet[i].FCost < currentNode.FCost ||
+                    openSet[i].FCost == currentNode.FCost && openSet[i].HCost < currentNode.HCost)
                 {
                     currentNode = openSet[i];
                 }
@@ -30,16 +30,16 @@ public class Pathfinding
                 return RetracePath(startNode, targetNode);
             }
 
-            foreach (MeshNode neighbor in currentNode.connections)
+            foreach (MeshNode neighbor in currentNode.Connections)
             {
                 if (closedSet.Contains(neighbor)) continue;
 
-                float newGCost = currentNode.gCost + Vector3.Distance(currentNode.position, neighbor.position);
-                if (newGCost < neighbor.gCost || !openSet.Contains(neighbor))
+                float newGCost = currentNode.GCost + Vector3.Distance(currentNode.position, neighbor.position);
+                if (newGCost < neighbor.GCost || !openSet.Contains(neighbor))
                 {
-                    neighbor.gCost = newGCost;
-                    neighbor.hCost = Vector3.Distance(neighbor.position, targetNode.position);
-                    neighbor.parent = currentNode;
+                    neighbor.GCost = newGCost;
+                    neighbor.HCost = Vector3.Distance(neighbor.position, targetNode.position);
+                    neighbor.Parent = currentNode;
 
                     if (!openSet.Contains(neighbor))
                         openSet.Add(neighbor);
@@ -58,7 +58,7 @@ public class Pathfinding
         while (currentNode != startNode)
         {
             path.Add(currentNode);
-            currentNode = currentNode.parent;
+            currentNode = currentNode.Parent;
         }
 
         path.Reverse();
