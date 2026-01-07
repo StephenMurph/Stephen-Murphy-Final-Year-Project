@@ -5,29 +5,29 @@ using UnityEngine;
 public class MeshNode
 {
     public Vector3 position;
-    public List<MeshNode> connections = new List<MeshNode>();
+    [System.NonSerialized] public List<MeshNode> Connections = new List<MeshNode>();
     
-    public MeshNode parent;
-    public float gCost;
-    public float hCost; 
-    public float fCost => gCost + hCost;
+    [System.NonSerialized] public MeshNode Parent;
+    [System.NonSerialized] public float GCost;
+    [System.NonSerialized] public float HCost; 
+    public float FCost => GCost + HCost;
 }
 
 [RequireComponent(typeof(MeshFilter))]
 public class MeshGenerator : MonoBehaviour
 {
-    Mesh mesh;
+    Mesh _mesh;
     
-    Vector3[] vertices;
-    int[] triangles;
-    public MeshNode[,] nodes;
+    Vector3[] _vertices;
+    int[] _triangles;
+    public MeshNode[,] Nodes;
 
     public int xSize = 20;
     public int zSize = 20;
     public void GenerateMesh()
     {
-        mesh = new Mesh();
-        GetComponent<MeshFilter>().mesh = mesh;
+        _mesh = new Mesh();
+        GetComponent<MeshFilter>().mesh = _mesh;
         
         CreateShape();
         UpdateMesh();
@@ -37,19 +37,19 @@ public class MeshGenerator : MonoBehaviour
     
     void CreateShape()
     {
-        vertices = new Vector3[(xSize + 1) * (zSize + 1)];
+        _vertices = new Vector3[(xSize + 1) * (zSize + 1)];
         
         for (int i = 0, z = 0; z <= zSize; z++)
         {
             for (int x = 0; x <= xSize; x++)
             {
                 float y = Mathf.PerlinNoise(x * .3f, z * .3f) * 2f;
-                vertices[i] = new Vector3(x, y, z);
+                _vertices[i] = new Vector3(x, y, z);
                 i++;
             }
         }
         
-        triangles = new int[xSize * zSize * 6];
+        _triangles = new int[xSize * zSize * 6];
 
         int vert = 0;
         int tris = 0;
@@ -58,12 +58,12 @@ public class MeshGenerator : MonoBehaviour
         {
             for(int x = 0; x < xSize; x++)
             {
-                triangles[tris + 0] = vert + 0;
-                triangles[tris + 1] = vert + xSize + 1;
-                triangles[tris + 2] = vert + 1;
-                triangles[tris + 3] = vert + 1;
-                triangles[tris + 4] = vert + xSize + 1;
-                triangles[tris + 5] = vert + xSize + 2;
+                _triangles[tris + 0] = vert + 0;
+                _triangles[tris + 1] = vert + xSize + 1;
+                _triangles[tris + 2] = vert + 1;
+                _triangles[tris + 3] = vert + 1;
+                _triangles[tris + 4] = vert + xSize + 1;
+                _triangles[tris + 5] = vert + xSize + 2;
 
                 vert++;
                 tris += 6;
@@ -74,7 +74,7 @@ public class MeshGenerator : MonoBehaviour
 
     void CreateNodes()
     {
-        nodes = new MeshNode[xSize + 1, zSize + 1];
+        Nodes = new MeshNode[xSize + 1, zSize + 1];
 
         int i = 0;
         for (int z = 0; z <= zSize; z++)
@@ -82,8 +82,8 @@ public class MeshGenerator : MonoBehaviour
             for (int x = 0; x <= xSize; x++)
             {
                 MeshNode node = new MeshNode();
-                node.position = vertices[i];
-                nodes[x, z] = node;
+                node.position = _vertices[i];
+                Nodes[x, z] = node;
                 i++;
             }
         }
@@ -95,7 +95,7 @@ public class MeshGenerator : MonoBehaviour
         {
             for (int x = 0; x <= xSize; x++)
             {
-                MeshNode node = nodes[x, z];
+                MeshNode node = Nodes[x, z];
                 
                 for (int nz = z - 1; nz <= z + 1; nz++)
                 {
@@ -104,7 +104,7 @@ public class MeshGenerator : MonoBehaviour
                         if (nx == x && nz == z) continue;
                         if (nx < 0 || nx > xSize || nz < 0 || nz > zSize) continue;
 
-                        node.connections.Add(nodes[nx, nz]);
+                        node.Connections.Add(Nodes[nx, nz]);
                     }
                 }
             }
@@ -115,19 +115,19 @@ public class MeshGenerator : MonoBehaviour
     {
         if (x < 0 || x > xSize || z < 0 || z > zSize) return Vector3.up;
     
-        mesh.RecalculateNormals();
+        _mesh.RecalculateNormals();
         int i = z * (xSize + 1) + x;
-        return mesh.normals[i];
+        return _mesh.normals[i];
     }
 
     void UpdateMesh()
     {
-        mesh.Clear();
+        _mesh.Clear();
 
-        mesh.vertices = vertices;
-        mesh.triangles = triangles;
+        _mesh.vertices = _vertices;
+        _mesh.triangles = _triangles;
         
-        mesh.RecalculateNormals();
+        _mesh.RecalculateNormals();
     }
     
     /*void OnDrawGizmos()
