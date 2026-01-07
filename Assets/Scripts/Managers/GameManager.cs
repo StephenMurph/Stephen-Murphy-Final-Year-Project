@@ -9,7 +9,6 @@ public class GameManager : MonoBehaviour
     public float moveSpeed = 2f; 
     public float hopHeight = 0.3f; 
     
-    private bool movementStarted = false;
     
     private MeshNode _startNode;
     private MeshNode _endNode;
@@ -23,7 +22,7 @@ public class GameManager : MonoBehaviour
     
     void SpawnPlayer()
     {
-        MeshNode[,] nodes = meshGenerator.nodes;
+        MeshNode[,] nodes = meshGenerator.Nodes;
         int xSize = meshGenerator.xSize;
         int zSize = meshGenerator.zSize;
 
@@ -37,6 +36,17 @@ public class GameManager : MonoBehaviour
 
         Vector3 spawnPos = _startNode.position + Vector3.up * 0.08f;
         GameObject player = Instantiate(playerPrefab, spawnPos, Quaternion.identity);
+        
+        var mainCam = Camera.main;
+        if (mainCam != null)
+        {
+            var cam = mainCam.GetComponent<CameraManager>();
+            if (cam != null) cam.SetTarget(player.transform);
+        }
+        else
+        {
+            Debug.LogWarning("No Camera tagged MainCamera found.");
+        }
 
         _path = Pathfinding.FindPath(_startNode, _endNode);
 
