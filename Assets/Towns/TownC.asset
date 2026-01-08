@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 103b31352ec74ef8903c62773a4471f9, type: 3}
+  m_Name: TownC
+  m_EditorClassIdentifier: Assembly-CSharp::TownData
+  townName: TownB
+  goods:
+  - item: {fileID: 11400000, guid: 6d528efc14acb414fa59433f7bcce306, type: 2}
+    buyPrice: 800
+    sellPrice: 600
+  - item: {fileID: 11400000, guid: dd0504f00be35994b8109b97856020a5, type: 2}
+    buyPrice: 10
+    sellPrice: 2
+  - item: {fileID: 11400000, guid: d7dd472d2b43366489bb90cf62224add, type: 2}
+    buyPrice: 40
+    sellPrice: 12
