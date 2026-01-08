@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 18a7eb6ea09a47368ef4d873cc03abbb, type: 3}
   m_Name: porcelain
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
-  itemName: 
+  itemName: porcelain
   type: 0
-  description: 
+  description: porcelain
   icon: {fileID: 0}
   stackable: 1
   maxStack: 999
-  valueInGold: 1
+  valueInGold: 50

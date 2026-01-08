@@ -47,7 +47,7 @@ public class Pathfinding
             }
         }
 
-        return null; // No path found
+        return null; 
     }
 
     static List<MeshNode> RetracePath(MeshNode startNode, MeshNode endNode)
