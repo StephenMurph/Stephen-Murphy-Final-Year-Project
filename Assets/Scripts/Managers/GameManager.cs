@@ -12,6 +12,21 @@ public class GameManager : MonoBehaviour
 
     public float moveSpeed = 2f;
     public float hopHeight = 0.3f;
+    
+    [Header("Travel Events")]
+    public EventPopupUI eventPopup;
+
+    [Range(0f, 1f)] public float weatherChancePerNode = 0.08f;
+    [Range(0f, 1f)] public float banditChancePerNode = 0.06f;
+
+    public float weatherSlowMultiplier = 0.6f; 
+    public int weatherSlowNodes = 4;           
+
+    [Range(0f, 1f)] public float banditWinChance = 0.6f;
+    public int banditPayCost = 10;
+    public int banditLoseCost = 30;
+    
+    int _slowRemainingNodes = 0;
 
     [Header("Trade")]
     public TradeMenuUI tradeMenu;
@@ -144,59 +159,153 @@ public class GameManager : MonoBehaviour
             }
         }
     }
-
-    IEnumerator TravelTo(string destinationTownName)
+    
+    IEnumerator RollEventsAtNode()
     {
-        Debug.Log($"TravelTo started: {_currentTownName} -> {destinationTownName}");
-        var startTown = _towns[_currentTownName];
-        var endTown = _towns[destinationTownName];
+        if (eventPopup == null) yield break;
         
-        foreach (var n in meshGenerator.Nodes)
+        if (Random.value < weatherChancePerNode)
         {
-            if (n == null) continue;
-            n.GCost = float.PositiveInfinity;
-            n.HCost = 0f;
-            n.Parent = null;
-        }
-        startTown.node.GCost = 0f;
+            _slowRemainingNodes = Mathf.Max(_slowRemainingNodes, weatherSlowNodes);
 
-        _currentPath = Pathfinding.FindPath(startTown.node, endTown.node);
-        var path = _currentPath;
-        if (path == null || path.Count == 0)
-        {
-            Debug.LogWarning($"No path found from {_currentTownName} to {destinationTownName}");
+            yield return eventPopup.ShowWeather(
+                "Bad Weather",
+                $"A storm slows your caravan.\n\nMovement speed reduced for the next {weatherSlowNodes} nodes."
+            );
+
             yield break;
         }
         
-        foreach (MeshNode node in path)
+        if (Random.value < banditChancePerNode)
         {
-            Vector3 startPos = _player.transform.position;
-            Vector3 endPos = node.position + Vector3.up * 0.08f;
-            float distance = Vector3.Distance(startPos, endPos);
-            float duration = distance / moveSpeed;
+            int goldBefore = _inv != null ? _inv.Gold : 0;
 
-            float elapsed = 0f;
-            while (elapsed < duration)
+            string playerChoice = null;
+            
+            yield return eventPopup.ShowBandits(
+                "Bandits!",
+                $"Bandits ambush you on the road.\n\nYour gold: {goldBefore}\n\nFight them or pay {banditPayCost} gold?",
+                onFight: () => { playerChoice = "fight"; },
+                onPay:   () => { playerChoice = "pay"; }
+            );
+            
+            if (playerChoice == "pay")
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
+                if (_inv != null) _inv.SpendGold(banditPayCost);
 
-                float height = Mathf.Sin(t * Mathf.PI) * hopHeight;
-                _player.transform.position = Vector3.Lerp(startPos, endPos, t) + Vector3.up * height;
-
-                Vector3 dir = (endPos - startPos).normalized;
-                if (dir != Vector3.zero)
-                    _player.transform.rotation = Quaternion.Slerp(_player.transform.rotation, Quaternion.LookRotation(dir), 0.2f);
-
-                yield return null;
+                int goldAfter = _inv != null ? _inv.Gold : 0;
+                yield return eventPopup.ShowOk(
+                    "You Paid the Bandits",
+                    $"You hand over {banditPayCost} gold and continue on.\n\nGold: {goldBefore} -> {goldAfter}"
+                );
+                yield break;
             }
 
-            _player.transform.position = endPos;
+            if (playerChoice == "fight")
+            {
+                bool win = Random.value < banditWinChance;
+
+                if (win)
+                {
+                    yield return eventPopup.ShowOk(
+                        "Bandits Defeated!",
+                        "You fought off the bandits and kept your goods safe."
+                    );
+                }
+                else
+                {
+                    if (_inv != null) _inv.SpendGold(banditLoseCost);
+
+                    int goldAfter = _inv != null ? _inv.Gold : 0;
+                    yield return eventPopup.ShowOk(
+                        "You Lost the Fight",
+                        $"The bandits overwhelm you.\n\nYou lose {banditLoseCost} gold.\nGold: {goldBefore} → {goldAfter}"
+                    );
+                }
+
+                yield break;
+            }
+            
+            yield break;
         }
-        
-        _currentTownName = destinationTownName;
-        OpenTownMenu();
     }
+
+IEnumerator TravelTo(string destinationTownName)
+{
+    Debug.Log($"TravelTo started: {_currentTownName} -> {destinationTownName}");
+
+    var startTown = _towns[_currentTownName];
+    var endTown = _towns[destinationTownName];
+
+    // reset A* costs each trip
+    foreach (var n in meshGenerator.Nodes)
+    {
+        if (n == null) continue;
+        n.GCost = float.PositiveInfinity;
+        n.HCost = 0f;
+        n.Parent = null;
+    }
+    startTown.node.GCost = 0f;
+
+    _currentPath = Pathfinding.FindPath(startTown.node, endTown.node);
+    var path = _currentPath;
+
+    if (path == null || path.Count == 0)
+    {
+        Debug.LogWarning($"No path found from {_currentTownName} to {destinationTownName}");
+        yield break;
+    }
+
+    for (int idx = 0; idx < path.Count; idx++)
+    {
+        MeshNode node = path[idx];
+
+        float speedMultiplier = (_slowRemainingNodes > 0) ? weatherSlowMultiplier : 1f;
+        float effectiveMoveSpeed = moveSpeed * speedMultiplier;
+
+        Vector3 startPos = _player.transform.position;
+        Vector3 endPos = node.position + Vector3.up * 0.08f;
+
+        float distance = Vector3.Distance(startPos, endPos);
+        float duration = distance / Mathf.Max(0.01f, effectiveMoveSpeed);
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+
+            float height = Mathf.Sin(t * Mathf.PI) * hopHeight;
+            _player.transform.position = Vector3.Lerp(startPos, endPos, t) + Vector3.up * height;
+
+            Vector3 dir = (endPos - startPos).normalized;
+            if (dir != Vector3.zero)
+                _player.transform.rotation = Quaternion.Slerp(
+                    _player.transform.rotation,
+                    Quaternion.LookRotation(dir),
+                    0.2f
+                );
+
+            yield return null;
+        }
+
+        _player.transform.position = endPos;
+
+        if (_slowRemainingNodes > 0)
+            _slowRemainingNodes--;
+        
+        bool isDestination = (idx == path.Count - 1);
+        if (!isDestination)
+            yield return StartCoroutine(RollEventsAtNode());
+    }
+    
+    _currentTownName = destinationTownName;
+    
+    Time.timeScale = 1f;
+    yield return null;
+
+    OpenTownMenu();
+}
     void OnDrawGizmos()
     {
         if (_towns == null || _towns.Count == 0) return;
